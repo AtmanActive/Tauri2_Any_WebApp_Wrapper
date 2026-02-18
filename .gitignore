@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+src-tauri/target/
+src-tauri/gen/schemas
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
+
+# Windows reserved filename artifact
+nul
