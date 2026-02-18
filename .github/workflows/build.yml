@@ -50,8 +50,9 @@ jobs:
       - name: Install npm dependencies
         run: npm install
 
-      - name: Build (binary only)
-        run: npx tauri build --bundles none
+      - name: Build
+        working-directory: src-tauri
+        run: cargo build --release
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
