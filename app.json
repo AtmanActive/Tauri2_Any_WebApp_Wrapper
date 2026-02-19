@@ -1,5 +1,16 @@
 {
+  "_comment_url": "Required. The website URL to load in the native window.",
   "url": "https://example.com",
+
+  "_comment_title": "Optional. Fixed window title. If empty, the title syncs with the page title (Windows only).",
   "title": "",
-  "icon": ""
+
+  "_comment_icon": "Optional. Path to a custom window icon (.ico or .png). Absolute or relative to the executable.",
+  "icon": "",
+
+  "_comment_prefer_dark_mode": "Optional. Values: 'default' (let OS decide), 'dark' (request dark site theme), 'light' (request light site theme). Only works on sites that support prefers-color-scheme CSS.",
+  "prefer_dark_mode": "default",
+
+  "_comment_force_dark_mode": "Optional. Values: 'on' or 'off'. When 'on', forces all sites into dark mode even if they don't natively support it (like Chrome's force-dark flag). Windows only.",
+  "force_dark_mode": "off"
 }

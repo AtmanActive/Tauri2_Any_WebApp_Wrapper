@@ -8,6 +8,10 @@ pub struct AppConfig {
     pub title: String,
     #[serde(default)]
     pub icon: String,
+    #[serde(default)]
+    pub prefer_dark_mode: String,
+    #[serde(default)]
+    pub force_dark_mode: String,
 }
 
 impl AppConfig {
