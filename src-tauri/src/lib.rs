@@ -1,6 +1,6 @@
 mod config;
 
-use config::AppConfig;
+use config::{AppConfig, WindowState};
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -25,6 +25,9 @@ pub fn run() {
                 .get_webview_window("main")
                 .expect("Failed to get main window");
 
+            // Restore saved window position/size (if available)
+            restore_window_state(&window);
+
             // Set initial title from config (if provided)
             if !config.title.is_empty() {
                 window
@@ -47,14 +50,86 @@ pub fn run() {
             let color_scheme = config.prefer_dark_mode.clone();
             setup_webview_handlers(&window, title_window, has_static_title, &color_scheme);
 
+            // Register window event handler to persist position/size
+            let save_window = window.clone();
+            window.on_window_event(move |event| {
+                use tauri::WindowEvent;
+                match event {
+                    WindowEvent::Moved(_) | WindowEvent::Resized(_) => {
+                        save_window_state(&save_window);
+                    }
+                    _ => {}
+                }
+            });
+
             // Navigate to the configured URL
             let url: tauri::Url = config.url.parse().expect("Invalid URL in config.json");
             let _ = window.navigate(url);
+
+            // Start minimized (if configured)
+            if config.start_minimized.eq_ignore_ascii_case("on") {
+                let _ = window.minimize();
+            }
 
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Restore window position, size, and maximized state from the saved state file
+fn restore_window_state(window: &tauri::WebviewWindow) {
+    if let Some(state) = WindowState::load() {
+        // Validate that the saved size is reasonable (at least 200x200)
+        if state.width >= 200 && state.height >= 200 {
+            let _ = window.set_size(tauri::PhysicalSize::new(state.width, state.height));
+        }
+        // Restore position
+        let _ = window.set_position(tauri::PhysicalPosition::new(state.x, state.y));
+        // Restore maximized state
+        if state.maximized {
+            let _ = window.maximize();
+        }
+    }
+}
+
+/// Save current window position, size, and maximized state to disk
+fn save_window_state(window: &tauri::WebviewWindow) {
+    let maximized = window.is_maximized().unwrap_or(false);
+
+    // When maximized, don't overwrite the saved normal position/size —
+    // we want to restore the non-maximized geometry next time.
+    // Only save the maximized flag.
+    if maximized {
+        if let Some(mut state) = WindowState::load() {
+            state.maximized = true;
+            state.save();
+        } else {
+            // No previous state — save current dimensions with maximized flag
+            let pos = window.outer_position().unwrap_or_default();
+            let size = window.outer_size().unwrap_or_default();
+            let state = WindowState {
+                x: pos.x,
+                y: pos.y,
+                width: size.width,
+                height: size.height,
+                maximized: true,
+            };
+            state.save();
+        }
+        return;
+    }
+
+    let pos = window.outer_position().unwrap_or_default();
+    let size = window.outer_size().unwrap_or_default();
+    let state = WindowState {
+        x: pos.x,
+        y: pos.y,
+        width: size.width,
+        height: size.height,
+        maximized: false,
+    };
+    state.save();
 }
 
 #[cfg(target_os = "windows")]

@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 #[derive(Deserialize)]
@@ -12,6 +12,18 @@ pub struct AppConfig {
     pub prefer_dark_mode: String,
     #[serde(default)]
     pub force_dark_mode: String,
+    #[serde(default)]
+    pub start_minimized: String,
+}
+
+/// Persisted window geometry — saved beside the config as `<name>.window.json`
+#[derive(Serialize, Deserialize, Default)]
+pub struct WindowState {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+    pub maximized: bool,
 }
 
 impl AppConfig {
@@ -62,6 +74,29 @@ impl AppConfig {
         Err(format!("{} not found", config_name).into())
     }
 
+    /// Path for the window state file: `<exe_name>.window.json` beside the config
+    pub fn window_state_path() -> Option<PathBuf> {
+        let exe_name = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().into_owned()))?;
+        let filename = format!("{}.window.json", exe_name);
+
+        // In debug mode, check project root first
+        #[cfg(debug_assertions)]
+        {
+            if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
+                if let Some(project_root) = PathBuf::from(manifest_dir).parent() {
+                    return Some(project_root.join(&filename));
+                }
+            }
+        }
+
+        // Beside the executable
+        std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|d| d.join(&filename)))
+    }
+
     pub fn resolve_icon_path(&self) -> Option<PathBuf> {
         if self.icon.is_empty() {
             return None;
@@ -96,5 +131,21 @@ impl AppConfig {
         }
 
         None
+    }
+}
+
+impl WindowState {
+    pub fn load() -> Option<Self> {
+        let path = AppConfig::window_state_path()?;
+        let contents = std::fs::read_to_string(&path).ok()?;
+        serde_json::from_str(&contents).ok()
+    }
+
+    pub fn save(&self) {
+        if let Some(path) = AppConfig::window_state_path() {
+            if let Ok(json) = serde_json::to_string_pretty(self) {
+                let _ = std::fs::write(path, json);
+            }
+        }
     }
 }

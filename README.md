@@ -9,6 +9,8 @@ A lightweight [Tauri v2](https://v2.tauri.app/) desktop app that wraps any websi
 - **Custom title** — Optionally set a fixed window title via config
 - **Custom icon** — Set your own window icon (ICO or PNG)
 - **Dark mode control** — Request dark/light theme from sites, or force-dark all sites (Windows)
+- **Remember window position** — Window size, position, and maximized state are saved and restored across sessions
+- **Start minimized** — Optionally launch the app minimized to the taskbar
 - **Rename-to-configure** — Rename the executable and it auto-detects its config file (`MyApp.exe` → `MyApp.json`)
 - **Cross-platform** — Builds for Windows x64, Linux x64, and macOS ARM64
 
@@ -44,6 +46,7 @@ The config file is a simple JSON file placed next to the executable. The filenam
 | `icon` | No | `""` | Path to a custom window icon (`.ico` or `.png`). Absolute path, or relative to the executable |
 | `prefer_dark_mode` | No | `"default"` | Color scheme preference: `"default"` (let OS decide), `"dark"` (request dark theme), `"light"` (request light theme). Only affects sites that support `prefers-color-scheme` CSS. Windows only |
 | `force_dark_mode` | No | `"off"` | Force-dark rendering: `"on"` or `"off"`. When `"on"`, forces all sites into dark mode even if they don't natively support it — same as Chrome's force-dark flag. Windows only |
+| `start_minimized` | No | `"off"` | Start minimized to taskbar: `"on"` or `"off"` |
 
 ### Example — minimal
 
@@ -61,7 +64,8 @@ The config file is a simple JSON file placed next to the executable. The filenam
   "title": "YouTube Music",
   "icon": "music.png",
   "prefer_dark_mode": "dark",
-  "force_dark_mode": "off"
+  "force_dark_mode": "off",
+  "start_minimized": "off"
 }
 ```
 
@@ -72,6 +76,15 @@ The config file is a simple JSON file placed next to the executable. The filenam
 **`force_dark_mode`** is the nuclear option — it enables Chromium's built-in force-dark rendering engine (equivalent to `chrome://flags/#enable-force-dark-web-contents`). This will force-render **all** sites in dark mode, even ones that don't have any dark theme support. Results vary per site — some look great, others may look odd. Set to `"on"` to enable.
 
 The two options can be combined: `prefer_dark_mode` handles CSS-aware sites gracefully, while `force_dark_mode` catches everything else.
+
+### Window state persistence
+
+The app automatically remembers your window position, size, and maximized state between sessions. This works out of the box — no configuration needed.
+
+- The state is saved to `<exe_name>.window.json` beside the executable (e.g. `app.window.json`)
+- Updated every time you move, resize, or maximize/restore the window
+- On next launch, the window opens exactly where you left it
+- To reset to defaults, simply delete the `.window.json` file
 
 ## Platform Notes
 
@@ -115,7 +128,7 @@ The binary will be at `src-tauri/target/release/app` (or `app.exe` on Windows).
     ├── tauri.conf.json           # Tauri build config
     └── src/
         ├── main.rs              # Entry point
-        ├── lib.rs               # App setup, navigation, title sync, dark mode
+        ├── lib.rs               # App setup, navigation, title sync, dark mode, window state
         └── config.rs            # Config struct + loader
 ```
 

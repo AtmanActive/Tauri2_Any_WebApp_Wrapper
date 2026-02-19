@@ -12,5 +12,8 @@
   "prefer_dark_mode": "default",
 
   "_comment_force_dark_mode": "Optional. Values: 'on' or 'off'. When 'on', forces all sites into dark mode even if they don't natively support it (like Chrome's force-dark flag). Windows only.",
-  "force_dark_mode": "off"
+  "force_dark_mode": "off",
+
+  "_comment_start_minimized": "Optional. Values: 'on' or 'off'. When 'on', the app starts minimized to the taskbar.",
+  "start_minimized": "off"
 }

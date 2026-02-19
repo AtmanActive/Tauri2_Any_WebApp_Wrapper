@@ -14,5 +14,8 @@ Thumbs.db
 # Claude Code
 .claude/
 
+# Window state (auto-generated, user-specific)
+*.window.json
+
 # Windows reserved filename artifact
 nul
