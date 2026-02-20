@@ -11,6 +11,7 @@ A lightweight [Tauri v2](https://v2.tauri.app/) desktop app that wraps any websi
 - **Dark mode control** — Request dark/light theme from sites, or force-dark all sites (Windows)
 - **Remember window position** — Window size, position, and maximized state are saved and restored across sessions
 - **Start minimized** — Optionally launch the app minimized to the taskbar
+- **Single-instance control** — Prevent multiple instances, or let the latest instance take over (Windows)
 - **Rename-to-configure** — Rename the executable and it auto-detects its config file (`MyApp.exe` → `MyApp.json`)
 - **Cross-platform** — Builds for Windows x64, Linux x64, and macOS ARM64
 
@@ -47,6 +48,7 @@ The config file is a simple JSON file placed next to the executable. The filenam
 | `prefer_dark_mode` | No | `"default"` | Color scheme preference: `"default"` (let OS decide), `"dark"` (request dark theme), `"light"` (request light theme). Only affects sites that support `prefers-color-scheme` CSS. Windows only |
 | `force_dark_mode` | No | `"off"` | Force-dark rendering: `"on"` or `"off"`. When `"on"`, forces all sites into dark mode even if they don't natively support it — same as Chrome's force-dark flag. Windows only |
 | `start_minimized` | No | `"off"` | Start minimized to taskbar: `"on"` or `"off"` |
+| `allow_only_one_instance` | No | `"off"` | Single-instance mode: `"off"` (allow multiple), `"on"` or `"first"` (exit if already running), `"last"` (kill existing and take over). Windows only |
 
 ### Example — minimal
 
@@ -65,7 +67,8 @@ The config file is a simple JSON file placed next to the executable. The filenam
   "icon": "music.png",
   "prefer_dark_mode": "dark",
   "force_dark_mode": "off",
-  "start_minimized": "off"
+  "start_minimized": "off",
+  "allow_only_one_instance": "off"
 }
 ```
 
@@ -85,6 +88,19 @@ The app automatically remembers your window position, size, and maximized state 
 - Updated every time you move, resize, or maximize/restore the window
 - On next launch, the window opens exactly where you left it
 - To reset to defaults, simply delete the `.window.json` file
+- When multiple instances are allowed, each new instance opens with a +32px offset so windows don't stack exactly on top of each other
+
+### Single-instance mode
+
+**`allow_only_one_instance`** controls how the app handles multiple instances:
+
+| Value | Behavior |
+|-------|----------|
+| `"off"` (default) | Multiple instances allowed. New windows cascade with a +32px offset |
+| `"on"` or `"first"` | If an instance is already running, it is brought to the foreground (restored from minimized if needed) and the new one exits |
+| `"last"` | If an instance is already running, it is terminated and the new one takes over |
+
+This is useful for apps where only one window should exist at a time, like a dedicated music player or chat client.
 
 ## Platform Notes
 
@@ -94,7 +110,7 @@ The app automatically remembers your window position, size, and maximized state 
 | **Linux** | WebKit2GTK 4.1 (`libwebkit2gtk-4.1`) |
 | **macOS** | None (uses WKWebView) |
 
-- **Dynamic title sync**, **prefer_dark_mode**, and **force_dark_mode** use the WebView2 API and are only available on Windows. On macOS and Linux, the window title stays at the default unless a static `title` is set in the config.
+- **Dynamic title sync**, **prefer_dark_mode**, **force_dark_mode**, and **allow_only_one_instance** use Windows APIs and are only available on Windows. On macOS and Linux, the window title stays at the default unless a static `title` is set in the config.
 
 ## Building from Source
 
@@ -128,7 +144,7 @@ The binary will be at `src-tauri/target/release/app` (or `app.exe` on Windows).
     ├── tauri.conf.json           # Tauri build config
     └── src/
         ├── main.rs              # Entry point
-        ├── lib.rs               # App setup, navigation, title sync, dark mode, window state
+        ├── lib.rs               # App setup, navigation, title sync, dark mode, window state, single-instance
         └── config.rs            # Config struct + loader
 ```
 

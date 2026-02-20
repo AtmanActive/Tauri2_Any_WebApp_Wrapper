@@ -15,5 +15,8 @@
   "force_dark_mode": "off",
 
   "_comment_start_minimized": "Optional. Values: 'on' or 'off'. When 'on', the app starts minimized to the taskbar.",
-  "start_minimized": "off"
+  "start_minimized": "off",
+
+  "_comment_allow_only_one_instance": "Optional. Values: 'off' (allow multiple instances), 'on' or 'first' (exit if already running), 'last' (kill existing instance and take over). Windows only.",
+  "allow_only_one_instance": "off"
 }

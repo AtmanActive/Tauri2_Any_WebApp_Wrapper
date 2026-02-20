@@ -14,6 +14,8 @@ pub struct AppConfig {
     pub force_dark_mode: String,
     #[serde(default)]
     pub start_minimized: String,
+    #[serde(default)]
+    pub allow_only_one_instance: String,
 }
 
 /// Persisted window geometry — saved beside the config as `<name>.window.json`
@@ -95,6 +97,16 @@ impl AppConfig {
         std::env::current_exe()
             .ok()
             .and_then(|p| p.parent().map(|d| d.join(&filename)))
+    }
+
+    /// Parse the single-instance mode from config.
+    /// Returns: None (off/absent), Some("first"), or Some("last")
+    pub fn instance_mode(&self) -> Option<&str> {
+        match self.allow_only_one_instance.to_lowercase().as_str() {
+            "on" | "first" => Some("first"),
+            "last" => Some("last"),
+            _ => None,
+        }
     }
 
     pub fn resolve_icon_path(&self) -> Option<PathBuf> {
