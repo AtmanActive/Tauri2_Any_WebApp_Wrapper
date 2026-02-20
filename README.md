@@ -148,6 +148,28 @@ The binary will be at `src-tauri/target/release/app` (or `app.exe` on Windows).
         └── config.rs            # Config struct + loader
 ```
 
+## Replacing the Executable Icon
+
+By default, the `.exe` file ships with the Tauri icon. To give your wrapped app its own identity in the taskbar and file explorer, you can replace the embedded icon using a resource editor.
+
+### Recommended tools
+
+| Tool | Type | Description |
+|------|------|-------------|
+| [Resource Hacker](https://www.angusj.com/resourcehacker/) | Free, portable | The standard tool for editing Windows PE resources. Open the `.exe`, go to **Icon Group**, right-click → **Replace Icon**, pick your `.ico` file, and save |
+| [Greenfish Icon Editor Pro](http://greenfishsoftware.org/gfie.php) | Free, open-source | Full icon editor — import a PNG, export as multi-size `.ico` |
+| [IcoFX](https://icofx.ro/) | Shareware | Feature-rich icon editor with PNG-to-ICO conversion |
+| [ImageMagick](https://imagemagick.org/) | Free, open-source, CLI | Convert from the command line: `magick convert icon.png icon.ico` |
+
+### Steps
+
+1. **Create an `.ico` file** from your PNG using one of the tools above (ideally include 16x16, 32x32, 48x48, and 256x256 sizes)
+2. **Open the `.exe`** in Resource Hacker
+3. Navigate to **Icon Group** → right-click → **Replace Icon** → select your `.ico` file
+4. **Save** the modified `.exe`
+
+> **Note**: This replaces the icon shown in File Explorer and the taskbar. The window icon at runtime can also be set via the `icon` field in your JSON config — both approaches can be used together.
+
 ## License
 
 [MIT](LICENSE) © AtmanActive
