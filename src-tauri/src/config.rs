@@ -36,7 +36,7 @@ impl AppConfig {
         Ok(config)
     }
 
-    fn config_filename() -> String {
+    pub(crate) fn config_filename() -> String {
         // Derive config filename from the executable name: MyApp.exe -> MyApp.json
         std::env::current_exe()
             .ok()

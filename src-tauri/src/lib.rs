@@ -3,11 +3,20 @@ mod config;
 use config::{AppConfig, WindowState};
 use tauri::Manager;
 
+const APP_VERSION: &str = "3.0.7";
+const APP_REPO_URL: &str = "https://github.com/AtmanActive/Tauri2_Any_WebApp_Wrapper";
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Load config early — before Tauri creates the webview — so we can set
     // environment variables that affect WebView2 initialization.
-    let config = AppConfig::load().expect("Failed to load config.json");
+    let config = match AppConfig::load() {
+        Ok(c) => c,
+        Err(e) => {
+            show_config_error(&e.to_string());
+            std::process::exit(1);
+        }
+    };
 
     // Single-instance enforcement (before any window is created)
     if let Some(mode) = config.instance_mode() {
@@ -56,6 +65,9 @@ pub fn run() {
                     }
                 }
             }
+
+            // Add "About" item to the system menu (window icon menu)
+            setup_system_menu(&window);
 
             // Register WebView2 handlers (title sync + color scheme preference)
             let title_window = window.clone();
@@ -455,4 +467,117 @@ fn setup_webview_handlers(
     _color_scheme: &str,
 ) {
     // WebView2 APIs are Windows-only; color scheme and title sync are no-ops on other platforms
+}
+
+/// Show a native error dialog when the config file cannot be loaded.
+#[cfg(target_os = "windows")]
+fn show_config_error(_error: &str) {
+    use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_OK, MB_ICONERROR};
+
+    let config_name = AppConfig::config_filename();
+    let message = format!(
+        "Could not load configuration file.\n\n\
+         Expected file: {}\n\
+         Place it next to the executable.\n\n\
+         Minimum required content:\n\n\
+         {{\n  \"url\": \"https://example.com\"\n}}",
+        config_name
+    );
+
+    let caption: Vec<u16> = "Configuration Error\0".encode_utf16().collect();
+    let text: Vec<u16> = message.encode_utf16().chain(std::iter::once(0)).collect();
+
+    unsafe {
+        let _ = MessageBoxW(
+            None,
+            windows::core::PCWSTR(text.as_ptr()),
+            windows::core::PCWSTR(caption.as_ptr()),
+            MB_OK | MB_ICONERROR,
+        );
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn show_config_error(_error: &str) {
+    let config_name = AppConfig::config_filename();
+    eprintln!(
+        "Could not load configuration file.\n\n\
+         Expected file: {}\n\
+         Place it next to the executable.\n\n\
+         Minimum required content:\n\n\
+         {{\n  \"url\": \"https://example.com\"\n}}",
+        config_name
+    );
+}
+
+/// Custom command ID for the "About" item in the system menu (window icon menu).
+/// Must be below 0xF000 and above standard SC_* values to avoid conflicts.
+#[cfg(target_os = "windows")]
+const SC_ABOUT: usize = 0x0010;
+
+/// Add a custom "Tauri WebApp on Demand vX.Y.Z" item to the window's system menu
+/// and subclass the window to handle clicks on it.
+#[cfg(target_os = "windows")]
+fn setup_system_menu(window: &tauri::WebviewWindow) {
+    use windows::Win32::Foundation::HWND;
+    use windows::Win32::UI::WindowsAndMessaging::{
+        AppendMenuW, GetSystemMenu, MF_SEPARATOR, MF_STRING,
+    };
+    use windows::Win32::UI::Shell::SetWindowSubclass;
+
+    let Ok(hwnd) = window.hwnd() else { return };
+    let hwnd = HWND(hwnd.0 as *mut _);
+
+    unsafe {
+        let hmenu = GetSystemMenu(hwnd, false);
+        if hmenu.is_invalid() {
+            return;
+        }
+
+        // Add separator + about item
+        let _ = AppendMenuW(hmenu, MF_SEPARATOR, 0, None);
+        let label: Vec<u16> = format!("Tauri WebApp on Demand v{}", APP_VERSION)
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect();
+        let _ = AppendMenuW(
+            hmenu,
+            MF_STRING,
+            SC_ABOUT,
+            windows::core::PCWSTR(label.as_ptr()),
+        );
+
+        // Subclass to intercept WM_SYSCOMMAND for our custom menu item
+        let _ = SetWindowSubclass(hwnd, Some(sysmenu_subclass_proc), 1, 0);
+    }
+}
+
+#[cfg(target_os = "windows")]
+unsafe extern "system" fn sysmenu_subclass_proc(
+    hwnd: windows::Win32::Foundation::HWND,
+    umsg: u32,
+    wparam: windows::Win32::Foundation::WPARAM,
+    lparam: windows::Win32::Foundation::LPARAM,
+    _uidsubclass: usize,
+    _dwrefdata: usize,
+) -> windows::Win32::Foundation::LRESULT {
+    use windows::Win32::UI::Shell::DefSubclassProc;
+    use windows::Win32::UI::WindowsAndMessaging::WM_SYSCOMMAND;
+
+    if umsg == WM_SYSCOMMAND && wparam.0 == SC_ABOUT {
+        // Open the project URL in the default browser
+        use std::os::windows::process::CommandExt;
+        let _ = std::process::Command::new("cmd")
+            .args(["/C", "start", "", APP_REPO_URL])
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW
+            .spawn();
+        return windows::Win32::Foundation::LRESULT(0);
+    }
+
+    DefSubclassProc(hwnd, umsg, wparam, lparam)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn setup_system_menu(_window: &tauri::WebviewWindow) {
+    // System menu customization is Windows-only
 }
